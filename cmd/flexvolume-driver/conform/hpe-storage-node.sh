@@ -8,6 +8,14 @@ exit_on_error() {
     fi
 }
 
+tune_iscsi() {
+    # Check protocol(passed from service file) and check pre-requisites
+    if [ "$PLUGIN_TYPE" = "cv" ]; then
+        # set nr_sessions 4 for cloud volumes as minimal requirement. CLI does this as well.
+	    sed -i 's/^node.session.nr_sessions\s*=\s*1/node.session.nr_sessions\ =\ 4/' /etc/iscsi/iscsid.conf
+    fi
+}
+
 # Obtain OS info
 if [ -f /etc/os-release ]; then
     os_name=$(cat /etc/os-release | egrep "^NAME=" | awk -F"NAME=" '{print $2}')
@@ -41,6 +49,8 @@ if [ "$CONFORM_TO" = "ubuntu" ]; then
 
         # load iscsi_tcp modules, its a no-op if its already loaded
         modprobe iscsi_tcp
+        # tune iscsi settings
+        tune_iscsi
     fi
 elif [ "$CONFORM_TO" = "redhat" ]; then
     # Install device-mapper-multipath
@@ -60,6 +70,8 @@ elif [ "$CONFORM_TO" = "redhat" ]; then
 
         # load iscsi_tcp modules, its a no-op if its already loaded
         modprobe iscsi_tcp
+        # tune iscsi settings
+        tune_iscsi
     fi
 else
     echo "unsupported configuration for node package checks. os $os_name"
